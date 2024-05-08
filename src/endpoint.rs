@@ -99,11 +99,16 @@ impl Router {
     }
     pub fn internal_address(&self) -> &Ipv4Addr { &self.internal_address }
 
-    pub fn interface(&self) -> String {
+    pub fn interface(&self,no_internal_address: bool,prefix: Option<u8>) -> String {
         let mut lines: Vec<String> = Vec::new();
         lines.push("[Interface]".to_string());
         lines.push(format!("# name: {}", self.name()));
         lines.push(format!("PrivateKey = {}", self.private_key()));
+        if !no_internal_address {
+            if let Some(prefix) = prefix{
+                lines.push(format!("Address = {}/{prefix}", self.internal_address()));
+            }
+        }
         lines.push(format!("ListenPort = {}", self.external_address().port()));
         lines.join("\n")
     }

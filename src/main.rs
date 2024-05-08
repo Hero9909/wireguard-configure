@@ -111,6 +111,9 @@ fn main () {
             .subcommand(
                 SubCommand::with_name("router-config")
                     .about("Dump router config")
+                .arg(Arg::with_name("no-internal-address")
+                    .short("n")
+                    .help("exclude internal address in router configuration"))
                 .arg(Arg::with_name("linux-script")
                     .short("l")
                     .long("linux-script")
@@ -250,7 +253,9 @@ fn main () {
             println!("cat > vpn.conf <<EOF");
         }
 
-        println!("{}", configuration.router().interface());
+        let prefix = configuration.master_subnet().map(|s|s.prefix_len());
+
+        println!("{}", configuration.router().interface(matches.is_present("no-internal-address"),prefix));
 
         for client in configuration.clients() {
             println!("{}", client.peer());
