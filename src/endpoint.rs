@@ -5,7 +5,7 @@ use std::io::Write;
 use std::process::{Command, Stdio};
 
 
-fn gen_keys() -> (String, String) {
+fn gen_keys() -> (String, String, String) {
     let output = Command::new("wg")
         .args(&["genkey"])
         .output()
@@ -40,7 +40,19 @@ fn gen_keys() -> (String, String) {
             .trim_left()
             .to_string();
 
-    (privkey, pubkey)
+
+    let output = Command::new("wg")
+        .args(&["genkey"])
+        .output()
+        .expect("Failed to execute wg genkey");
+
+    let psk =
+        String::from_utf8(output.stdout).unwrap()
+            .trim()
+            .trim_left()
+            .to_string();
+
+    (privkey, pubkey, psk)
 }
 
 
@@ -61,7 +73,7 @@ impl Router {
         internal_address: Ipv4Addr,
         external_address: AddrPort
     ) -> Router {
-        let (private_key, public_key) = gen_keys();
+        let (private_key, public_key, _) = gen_keys();
         Router {
             name: name.into(),
             private_key: private_key,
@@ -101,6 +113,9 @@ impl Router {
         lines.push("[Peer]".to_string());
         lines.push(format!("# {}", self.name()));
         lines.push(format!("PublicKey = {}", self.public_key()));
+        if let Some(preshared_key) = of.preshared_key() {
+            lines.push(format!("PresharedKey = {}", preshared_key));
+        }
         lines.push(format!("Endpoint = {}", self.external_address()));
         if let Some(keepalive) = of.persistent_keepalive() {
             lines.push(format!("PersistentKeepalive = {}", keepalive));
@@ -125,6 +140,7 @@ pub struct EndPoint {
     name: String,
     private_key: Option<String>,
     public_key: String,
+    preshared_key: Option<String>,
     external_address: Option<AddrPort>,
     internal_address: Ipv4Addr,
     allowed_ips: Vec<Ipv4Net>,
@@ -136,11 +152,12 @@ impl EndPoint {
     pub fn new<S: Into<String>>(name: S, internal_address: Ipv4Addr)
         -> EndPoint {
 
-        let (private_key, public_key) = gen_keys();
+        let (private_key, public_key,preshared_key) = gen_keys();
         EndPoint {
             name: name.into(),
             private_key: Some(private_key),
             public_key: public_key,
+            preshared_key: Some(preshared_key),
             external_address: None,
             internal_address: internal_address,
             allowed_ips: Vec::new(),
@@ -195,12 +212,16 @@ impl EndPoint {
     pub fn set_public_key(&mut self, public_key: String) {
         self.public_key = public_key;
     }
+    pub fn set_preshared_key(&mut self, preshared_key: Option<String>) {
+        self.preshared_key = preshared_key;
+    }
 
     pub fn name(&self) -> &str { &self.name }
     pub fn private_key(&self) -> Option<&str> {
         self.private_key.as_ref().map(|s| s.as_str())
     }
     pub fn public_key(&self) -> &str { &self.public_key }
+    pub fn preshared_key(&self) -> Option<&str> { self.preshared_key.as_ref().map(|s| s.as_str()) }
     pub fn external_address(&self) -> Option<&AddrPort> {
         self.external_address.as_ref()
     }
@@ -235,6 +256,9 @@ impl EndPoint {
         lines.push("[Peer]".to_string());
         lines.push(format!("# {}", self.name()));
         lines.push(format!("PublicKey = {}", self.public_key()));
+        if let Some(preshared_key) = self.preshared_key() {
+            lines.push(format!("PresharedKey = {}", preshared_key));
+        }
         if let Some(external_address) = self.external_address() {
             lines.push(format!("Endpoint = {}", external_address));
         }

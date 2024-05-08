@@ -80,6 +80,11 @@ fn main () {
                     .value_name("PUBLIC_KEY")
                     .help("Use the given public key, and don't generate keys \
                            automatically"))
+                .arg(Arg::with_name("preshared-key")
+                    .short("r")
+                    .value_name("PRESHARED_KEY")
+                    .help("can be one of none(default), generate or <KEY> to respectively use no, a generated or given preshared-key")
+                    .default_value("none"))
                 .arg(Arg::with_name("internal-address")
                     .short("i")
                     .long("internal-address")
@@ -202,6 +207,19 @@ fn main () {
         if let Some(public_key) = matches.value_of("public-key") {
             endpoint.set_private_key(None);
             endpoint.set_public_key(public_key.to_string());
+        }
+
+        if let Some(preshared_key) = matches.value_of("preshared-key") {
+            match preshared_key {
+                "none" => {
+                    endpoint.set_preshared_key(None);
+                }
+                "generate" => {}
+                &_ => {
+                    endpoint.set_preshared_key(Some(preshared_key.to_string()));
+                }
+            }
+
         }
 
         if let Some(keepalive) = matches.value_of("persistent-keepalive") {
