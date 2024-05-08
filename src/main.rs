@@ -17,7 +17,7 @@ use clap::{Arg, App, SubCommand};
 use configuration::Configuration;
 use endpoint::{EndPoint, Router};
 use ipnet::Ipv4Net;
-use prettytable::{Table, cell::Cell, row::Row};
+use prettytable::{Table, row};
 use std::net::Ipv4Addr;
 use std::path::Path;
 use std::process::exit;
@@ -151,28 +151,28 @@ fn main () {
 
         let mut table = Table::new();
 
-        table.add_row(Row::new(vec![
-            Cell::new("Name"),
-            Cell::new("Internal Address"),
-            Cell::new("Allowed IPs")
-        ]));
+        table.add_row(row![
+            "Name",
+            "Internal Address",
+            "Allowed IPs"
+        ]);
 
-        table.add_row(Row::new(vec![
-            Cell::new(configuration.router().name()),
-            Cell::new(&format!("{}", configuration.router().internal_address())),
-            Cell::new("")
-        ]));
+        table.add_row(row![
+            configuration.router().name(),
+            &format!("{}", configuration.router().internal_address()),
+            ""
+        ]);
 
         for client in configuration.clients() {
-            table.add_row(Row::new(vec![
-                Cell::new(client.name()),
-                Cell::new(&format!("{}", client.internal_address())),
-                Cell::new(
+            table.add_row(row![
+                client.name(),
+                &format!("{}", client.internal_address()),
+
                     &client.allowed_ips().iter()
                         .map(|ip| format!("{}", ip))
                         .collect::<Vec<String>>()
-                        .join(","))
-            ]));
+                        .join(",")
+            ]);
         }
 
         table.printstd();
