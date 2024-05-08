@@ -250,6 +250,7 @@ impl EndPoint {
         lines.push(format!("# name: {}", self.name()));
         lines.push(format!("PrivateKey = {}", self.private_key()
             .unwrap_or("USER_SUPPLIED")));
+        lines.push(format!("Address = {}/32",self.internal_address));
         if let Some(external_address) = self.external_address() {
             lines.push(format!("ListenPort = {}", external_address.port()));
         }
